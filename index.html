@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday Galaxy</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    overflow:hidden;
+    font-family:Arial, sans-serif;
+    background:black;
+}
+
+/* SKY */
+.sky{
+    position:fixed;
+    width:100%;
+    height:100vh;
+    background:radial-gradient(ellipse at bottom,#0d1b2a 0%,#090a0f 40%,#000 100%);
+}
+
+canvas{
+    position:absolute;
+    top:0;
+    left:0;
+}
+
+/* BUTTON */
+button{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    padding:18px 50px;
+    font-size:22px;
+    border:none;
+    border-radius:40px;
+    cursor:pointer;
+    background:linear-gradient(45deg,#ff00cc,#3333ff);
+    color:white;
+    box-shadow:0 0 20px #ff00cc;
+    z-index:10;
+    transition:0.3s;
+}
+
+button:hover{
+    transform:translate(-50%,-50%) scale(1.1);
+}
+
+.second{
+    display:none;
+}
+
+/* IMAGE */
+img{
+    position:absolute;
+    bottom:60px;
+    left:50%;
+    transform:translateX(-50%);
+    width:260px;
+    border-radius:20px;
+    opacity:0;
+    transition:2s;
+}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<div class="sky" id="page1">
+    <canvas id="canvas1"></canvas>
+    <button onclick="openGift()">🎁 Mở quà</button>
+</div>
+
+<!-- PAGE 2 -->
+<div class="sky second" id="page2">
+    <canvas id="canvas2"></canvas>
+    <img id="photo" src="z7134425590759_35b66c7caa804a511f10dbd02c2e9991.jpg">
+</div>
+
+<script>
+
+/* ======================= */
+/* PAGE 1 - STAR SKY */
+/* ======================= */
+
+const c1=document.getElementById("canvas1");
+const ctx1=c1.getContext("2d");
+
+c1.width=window.innerWidth;
+c1.height=window.innerHeight;
+
+let stars1=[];
+
+for(let i=0;i<200;i++){
+    stars1.push({
+        x:Math.random()*c1.width,
+        y:Math.random()*c1.height,
+        size:Math.random()*2,
+        speed:Math.random()*0.4+0.1
+    });
+}
+
+function animateStars1(){
+    ctx1.clearRect(0,0,c1.width,c1.height);
+
+    stars1.forEach(s=>{
+        s.y-=s.speed;
+        if(s.y<0) s.y=c1.height;
+
+        ctx1.beginPath();
+        ctx1.arc(s.x,s.y,s.size,0,Math.PI*2);
+        ctx1.fillStyle="white";
+        ctx1.fill();
+    });
+
+    requestAnimationFrame(animateStars1);
+}
+
+animateStars1();
+
+/* ======================= */
+/* PAGE 2 - GALAXY */
+/* ======================= */
+
+const c2=document.getElementById("canvas2");
+const ctx2=c2.getContext("2d");
+
+let stars2=[];
+let targetPoints=[];
+let backgroundStars=[];
+
+function openGift(){
+
+    document.getElementById("page1").style.display="none";
+    document.getElementById("page2").style.display="block";
+
+    c2.width=window.innerWidth;
+    c2.height=window.innerHeight;
+
+    stars2=[];
+    backgroundStars=[];
+
+    /* sao nền */
+    for(let i=0;i<250;i++){
+        backgroundStars.push({
+            x:Math.random()*c2.width,
+            y:Math.random()*c2.height,
+            size:Math.random()*1.5,
+            opacity:Math.random(),
+            twinkle:(Math.random()*0.02)+0.005
+        });
+    }
+
+    /* sao ghép chữ */
+    for(let i=0;i<450;i++){
+        stars2.push({
+            x:Math.random()*c2.width,
+            y:Math.random()*c2.height,
+            tx:Math.random()*c2.width,
+            ty:Math.random()*c2.height
+        });
+    }
+
+    createTextShape("15/3", Math.min(window.innerWidth/5,120));
+    animateStars2();
+
+    setTimeout(()=>{
+        createTextShape("HAPPY BIRTHDAY", Math.min(window.innerWidth/10,90));
+    },3000);
+
+    setTimeout(()=>{
+        document.getElementById("photo").style.opacity="1";
+    },5000);
+}
+
+/* TẠO CHỮ */
+function createTextShape(text,fontSize){
+
+    targetPoints=[];
+
+    let tempCanvas=document.createElement("canvas");
+    let tctx=tempCanvas.getContext("2d");
+
+    tempCanvas.width=window.innerWidth;
+    tempCanvas.height=window.innerHeight;
+
+    tctx.font=fontSize+"px Arial";
+    tctx.fillStyle="white";
+    tctx.textAlign="center";
+    tctx.textBaseline="middle";
+
+    tctx.fillText(text,tempCanvas.width/2,tempCanvas.height/2);
+
+    let data=tctx.getImageData(0,0,tempCanvas.width,tempCanvas.height).data;
+
+    for(let y=0;y<tempCanvas.height;y+=6){
+        for(let x=0;x<tempCanvas.width;x+=6){
+            let index=(y*tempCanvas.width+x)*4;
+            if(data[index+3]>128){
+                targetPoints.push({x,y});
+            }
+        }
+    }
+
+    assignTargets();
+}
+
+function assignTargets(){
+    for(let i=0;i<stars2.length;i++){
+        let p=targetPoints[i%targetPoints.length];
+        stars2[i].tx=p.x;
+        stars2[i].ty=p.y;
+    }
+}
+
+/* ANIMATE PAGE 2 */
+function animateStars2(){
+
+    ctx2.clearRect(0,0,c2.width,c2.height);
+
+    /* vẽ sao nền */
+    backgroundStars.forEach(s=>{
+        s.opacity+=s.twinkle;
+        if(s.opacity>1 || s.opacity<0){
+            s.twinkle*=-1;
+        }
+
+        ctx2.beginPath();
+        ctx2.arc(s.x,s.y,s.size,0,Math.PI*2);
+        ctx2.fillStyle="rgba(255,255,255,"+s.opacity+")";
+        ctx2.fill();
+    });
+
+    /* vẽ sao ghép chữ */
+    stars2.forEach(s=>{
+        s.x+=(s.tx-s.x)*0.06;
+        s.y+=(s.ty-s.y)*0.06;
+
+        ctx2.beginPath();
+        ctx2.arc(s.x,s.y,1.5,0,Math.PI*2);
+        ctx2.fillStyle="white";
+        ctx2.fill();
+    });
+
+    requestAnimationFrame(animateStars2);
+}
+
+</script>
+</body>
+</html>
